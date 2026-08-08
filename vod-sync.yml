@@ -1,0 +1,11 @@
+name: VOD Sync
+on:
+  schedule:
+    - cron: '0 21 * * *'
+  workflow_dispatch:
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 vod_sync.py
