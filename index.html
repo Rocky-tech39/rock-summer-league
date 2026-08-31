@@ -1,1 +1,10 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>ROCK 클랜 Summer League</title></head><body style="background:#eaf3ff;font-family:sans-serif"><p style="text-align:center;margin-top:40px;color:#4d5e85">불러오는 중...</p><script>fetch("https://rock-summer-league-default-rtdb.asia-southeast1.firebasedatabase.app/site.json").then(function(r){return r.json()}).then(function(h){document.open();document.write(h);document.close();});</script></body></html>
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏆 ROCK 클랜 Summer League</title>
+<meta property="og:title" content="ROCK 클랜 Summer League">
+<meta property="og:description" content="Summer League 실시간 현황 — 조별리그 · 토너먼트 · 경기 다시보기">
+<meta property="og:image" content="https://rocky-tech39.github.io/rock-summer-league/og_logo.jpg">
+<meta property="og:type" content="website">
+</head><body style="background:#eaf3ff;font-family:sans-serif"><p style="text-align:center;margin-top:40px;color:#4d5e85">불러오는 중...</p><script>
+if(location.hash.toLowerCase()==='#ked'&&'site'==='site'){location.replace('ked.html');}else{
+fetch('https://rock-summer-league-default-rtdb.asia-southeast1.firebasedatabase.app/site.json').then(function(r){return r.json()}).then(function(h){document.open();document.write(h);document.close();});}
+</script></body></html>
