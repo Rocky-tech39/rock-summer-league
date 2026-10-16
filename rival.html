@@ -59,7 +59,18 @@ button{font-family:inherit;cursor:pointer}
 .lb-row{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 10px;border-radius:12px;background:var(--card2);cursor:pointer;border:0;text-align:left;color:inherit;font:inherit;width:100%}
 .lb-row:hover{background:#e8effc}
 .lb-rank{font-family:'Black Han Sans';font-size:20px;text-align:center;color:var(--mute)}
-.lb-row:nth-child(1) .lb-rank{color:#e0a100}.lb-row:nth-child(2) .lb-rank{color:#8a9ab5}.lb-row:nth-child(3) .lb-rank{color:#c0773a}
+.lb-row.top{background:linear-gradient(90deg,#fff6dc,#fff);border:1px solid #f6d77a}
+.lb-row.top1{background:linear-gradient(90deg,#ffe9a8,#fff8e1);border-color:#f0b400;box-shadow:0 4px 14px rgba(240,180,0,.25)}
+.lb-row.top2{background:linear-gradient(90deg,#eef2f8,#fff);border-color:#b8c3d6}
+.lb-row.top3{background:linear-gradient(90deg,#fbe9dc,#fff);border-color:#e0a77a}
+.lb-row.top .lb-rank{font-size:22px}
+.topcard{border:2px solid #f6d77a;box-shadow:0 0 0 4px rgba(246,215,122,.35),0 12px 30px rgba(220,160,0,.22)}
+.topcard.t1{border-color:#f0b400;box-shadow:0 0 0 5px rgba(240,180,0,.35),0 14px 34px rgba(220,150,0,.35)}
+.topcard.t2{border-color:#a9b6cc;box-shadow:0 0 0 4px rgba(169,182,204,.35),0 12px 30px rgba(80,100,140,.22)}
+.topcard.t3{border-color:#e0a77a;box-shadow:0 0 0 4px rgba(224,167,122,.35),0 12px 30px rgba(180,110,60,.22)}
+.topcard .c-top{background:linear-gradient(90deg,#fff3c4,#fffaf0 50%,#fff3c4)}
+.pill.rankpill{background:#fff3c4;color:#8a5a00;border-color:#f0c84a;font-size:13px}
+.pill.rankpill.r1{background:linear-gradient(90deg,#ffd54a,#ffb300);color:#4a3000;border-color:#e0a000}
 .lb-name{font-weight:900;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lb-name .vs{color:var(--mute);font-weight:500;margin:0 6px}
 .lb-v{font-weight:900;font-size:15px;color:var(--L)}
@@ -221,7 +232,9 @@ const rk = r => ({ Protoss: 'P', Terran: 'T', Zerg: 'Z' }[r] || 'R');
 
 // ── 데이터 ──────────────────────────────────────────
 const ASOF = DATA.asof;
-const PL = DATA.players.map(([id, race, tier, eloAll, eloSeason, last], i) => ({ id, race, tier, eloAll, eloSeason, last, i }));
+// 티어 수동 보정 (공식 DB와 다를 때)
+const TIER_FIX = { Hyunho: 'Silver' };
+const PL = DATA.players.map(([id, race, tier, eloAll, eloSeason, last], i) => ({ id, race, tier: TIER_FIX[id] || tier, eloAll, eloSeason, last, i }));
 const P = new Map(PL.map(p => [p.id, p]));
 const normMap = m => m.includes('에결') ? '투혼' : m === '에티튜드' ? '애티튜드' : m;
 const SETS = DATA.sets.map(([d, a, b, w, m, ace]) => {
@@ -367,6 +380,8 @@ function cardHtml(st, opts = {}) {
   const { x, y, n, wx, wy } = st; const k = st.key || pairKey(x, y); const rx = st.rx || '', ry = st.ry || '';
   const vc = countOf(k), on = mine().includes(k);
   const tags = [];
+  const vr = voteRanks().get(k);
+  if (vr && vr <= 5) tags.unshift(`<span class="pill rankpill r${vr}">${MEDAL[vr - 1]} 투표 ${vr}위</span>`);
   if (st.n === CTX.mostGames) tags.push('<span class="pill hot">👑 최다 맞대결</span>');
   if (n && wx === wy) tags.push('<span class="pill hot">⚖️ 완벽한 동률</span>');
   if (made.has(k)) tags.push(`<span class="pill hot">✍️ ${esc(made.get(k))}님이 만든 대진</span>`);
@@ -380,7 +395,7 @@ function cardHtml(st, opts = {}) {
   if (offs.length) { pts = pts.filter(p => p[0] !== '🪞'); const ex = RCODE[rx] || X.race, ey = RCODE[ry] || Y.race; if (ex === ey) pts.push(['🪞', `${RACE_KO[ex]} 동족전. 같은 종족끼리라 빌드 싸움부터 볼거리예요.`]); }
   if (offs.length) pts = [['🎭', `부종족 매치! ${offs.join(', ')}로 출전. 아래 전적은 주종 기준 기록이라 결과는 아무도 몰라요.`], ...pts];
   const showPts = open.has(k) ? pts : pts.slice(0, 4);
-  return `<article class="card" id="c-${esc(k)}">
+  return `<article class="card${vr && vr <= 5 ? ' topcard t' + vr : ''}" id="c-${esc(k)}">
     <div class="c-top"><span class="c-no">${st.no ? `후보 #${st.no}` : st.no8 ? `8경기+ #${st.no8}` : '추천 대진'}</span><div class="c-tags">${tags.join('')}</div></div>
     <div class="duel">${sideHtml(x, 'l', rx)}<div class="score"><div class="big"><span class="l">${wx}</span><span class="c">:</span><span class="r">${wy}</span></div><div class="cap">통산 ${n}경기</div></div>${sideHtml(y, 'r', ry)}</div>
     <div class="bar"><i class="l" style="width:${n ? 100 * wx / n : 50}%"></i><i class="r" style="width:${n ? 100 * wy / n : 50}%"></i></div>
@@ -451,12 +466,20 @@ function listHtml() {
   list.sort(by[STATE.sort]);
   return list.map(c => cardHtml(c, { custom: c.custom })).join('') || '<div class="empty">조건에 맞는 대진이 없어요</div>';
 }
+// 득표 순위 (같은 표 수는 같은 순위)
+function voteRanks() {
+  const tally = new Map(); votes.forEach(v => tally.set(v.pair, (tally.get(v.pair) || 0) + 1));
+  const rk = new Map(); for (const [k, v] of tally) rk.set(k, 1 + [...tally.values()].filter(x => x > v).length);
+  return rk;
+}
+const MEDAL = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
 function lbHtml() {
   const tally = new Map(); votes.forEach(v => tally.set(v.pair, (tally.get(v.pair) || 0) + 1));
   const top = [...tally].sort((a, b) => b[1] - a[1]).slice(0, 8);
   if (!voteReady) return '';
   if (!top.length) return '<div class="note">아직 표가 없어요. 첫 표의 주인공이 되어 주세요!</div>';
-  return top.map(([k, v], i) => { const [x, y] = k.split(' vs ').map(sideLabel); return `<button class="lb-row" data-go="${esc(k)}"><span class="lb-rank">${i + 1}</span><span class="lb-name">${esc(x)}<span class="vs">vs</span>${esc(y)}</span><span class="lb-v">${v}표</span></button>`; }).join('');
+  const R = voteRanks();
+  return top.map(([k, v], i) => { const [x, y] = k.split(' vs ').map(sideLabel); const r = R.get(k); return `<button class="lb-row${r <= 5 ? ' top top' + r : ''}" data-go="${esc(k)}"><span class="lb-rank">${r <= 5 ? MEDAL[r - 1] : r}</span><span class="lb-name">${esc(x)}<span class="vs">vs</span>${esc(y)}</span><span class="lb-v">${v}표</span></button>`; }).join('');
 }
 function renderAll() {
   document.getElementById('lb').innerHTML = lbHtml();
