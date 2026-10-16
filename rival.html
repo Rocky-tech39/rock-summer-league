@@ -136,6 +136,8 @@ button{font-family:inherit;cursor:pointer}
 .empty{text-align:center;color:var(--sub);padding:30px;background:rgba(255,255,255,.7);border-radius:16px}
 /* custom */
 .custom{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto;gap:8px;align-items:center;margin-top:10px}
+.cside{display:flex;gap:6px;min-width:0}.cside select:first-child{flex:1;min-width:0}.rsel{width:130px;flex:none}
+.pill.off{background:#f3ecff;color:#7a3fd0;border-color:#d9c6fb}
 .custom .vs{font-family:'Black Han Sans';color:var(--mute)}
 @media(max-width:640px){.custom{grid-template-columns:1fr}.custom .vs{text-align:center}}
 #customOut{margin-top:14px}
@@ -175,10 +177,10 @@ button{font-family:inherit;cursor:pointer}
   </section>
 
   <section class="panel">
-    <h2>✍️ 직접 대진 만들기 <small>목록에 없는 맞수가 보고 싶다면</small></h2>
+    <h2>✍️ 직접 대진 만들기 <small>목록에 없는 맞수, 부종족 매치도 OK</small></h2>
     <div class="custom">
-      <select id="cA" class="fld" aria-label="선수 1"></select><span class="vs">VS</span><select id="cB" class="fld" aria-label="선수 2"></select>
-      <button class="more" id="cGo">전적 보기</button>
+      <div class="cside"><select id="cA" class="fld" aria-label="선수 1"></select><select id="rA" class="fld rsel" aria-label="선수 1 종족"><option value="">주종</option></select></div><span class="vs">VS</span><div class="cside"><select id="cB" class="fld" aria-label="선수 2"></select><select id="rB" class="fld rsel" aria-label="선수 2 종족"><option value="">주종</option></select></div>
+      <button class="more" id="cGo">대진 미리보기</button>
     </div>
     <div id="customOut"></div>
   </section>
@@ -229,6 +231,10 @@ const SETS = DATA.sets.map(([d, a, b, w, m, ace]) => {
 const ACTIVE_DAYS = 45;
 const isActive = id => P.get(id) && P.get(id).last && days(P.get(id).last, ASOF) <= ACTIVE_DAYS;
 const seasonOf = d => DATA.seasons.find(s => d >= s.start && d <= s.end);
+const RCODE = { P: 'Protoss', T: 'Terran', Z: 'Zerg', R: 'Random' };
+const sideKey = (id, r) => r ? `${id} [${r}]` : id;
+const parseSide = t => { const m = /^(.*) \[([PTZR])\]$/.exec(t); return m ? { id: m[1], r: m[2] } : { id: t, r: '' }; };
+const sideLabel = t => { const { id, r } = parseSide(t); return r ? `${id}(${RACE_KO[RCODE[r]]})` : id; };
 const pairKey = (x, y) => [x, y].sort((a, b) => a.localeCompare(b)).join(' vs ');
 
 const record = new Map(); // 선수별 프로리그 개인전 전체·최근 30일
@@ -351,13 +357,14 @@ async function toggleVote(k) {
 // ── 화면 ───────────────────────────────────────────
 const tierB = t => `<span class="tier" style="background:${TIER_COLOR[t] || '#888'}">${TIER_KO[t] || esc(t)}</span>`;
 const raceB = r => `<span class="race ${rk(r)}" title="${RACE_KO[r] || ''}">${rk(r)}</span>`;
-function sideHtml(id, cls) {
+function sideHtml(id, cls, r) {
   const p = P.get(id) || {}; const rc = record.get(id) || { w: 0, l: 0 };
-  return `<div class="side ${cls}"><div class="pname">${esc(id)}</div><div class="pmeta">${raceB(p.race)}${tierB(p.tier)}<span>ELO ${p.eloAll ?? '-'}</span></div><div class="pmeta"><span>프로리그 개인전 ${pct(rc.w, rc.w + rc.l)}%</span></div></div>`;
+  const race = r ? RCODE[r] : p.race;
+  return `<div class="side ${cls}"><div class="pname">${esc(id)}</div><div class="pmeta">${raceB(race)}${r ? `<span class="pill off">부종족 · 주종 ${rk(p.race)}</span>` : ''}${tierB(p.tier)}<span>ELO ${p.eloAll ?? '-'}</span></div><div class="pmeta"><span>프로리그 개인전 ${pct(rc.w, rc.w + rc.l)}%</span></div></div>`;
 }
 const open = new Set();
 function cardHtml(st, opts = {}) {
-  const { x, y, n, wx, wy } = st; const k = pairKey(x, y);
+  const { x, y, n, wx, wy } = st; const k = st.key || pairKey(x, y); const rx = st.rx || '', ry = st.ry || '';
   const vc = countOf(k), on = mine().includes(k);
   const tags = [];
   if (st.n === CTX.mostGames) tags.push('<span class="pill hot">👑 최다 맞대결</span>');
@@ -367,12 +374,15 @@ function cardHtml(st, opts = {}) {
   if (n >= 8 && st.gap > 15) tags.push(`<span class="pill">🦁 ${esc(wx > wy ? x : y)} 우세</span>`);
   if (!isActive(x) || !isActive(y)) tags.push('<span class="pill">📣 복귀 소환</span>');
   const X = P.get(x) || {}, Y = P.get(y) || {};
-  tags.push(`<span class="pill">${rk(X.race)}v${rk(Y.race)}</span>`);
-  const pts = n ? points(st, CTX) : [['🆕', '프로리그 개인전에서 아직 만난 적이 없어요. 첫 맞대결이 7판 끝장전!']];
+  tags.push(`<span class="pill${rx || ry ? ' off' : ''}">${rx || rk(X.race)}v${ry || rk(Y.race)}</span>`);
+  let pts = n ? points(st, CTX) : [['🆕', '프로리그 개인전에서 아직 만난 적이 없어요. 첫 맞대결이 7판 끝장전!']];
+  const offs = [[x, rx], [y, ry]].filter(([, r]) => r).map(([id, r]) => `${esc(id)}는 주종 ${RACE_KO[(P.get(id) || {}).race] || '-'} 대신 <b>${RACE_KO[RCODE[r]]}</b>`);
+  if (offs.length) { pts = pts.filter(p => p[0] !== '🪞'); const ex = RCODE[rx] || X.race, ey = RCODE[ry] || Y.race; if (ex === ey) pts.push(['🪞', `${RACE_KO[ex]} 동족전. 같은 종족끼리라 빌드 싸움부터 볼거리예요.`]); }
+  if (offs.length) pts = [['🎭', `부종족 매치! ${offs.join(', ')}로 출전. 아래 전적은 주종 기준 기록이라 결과는 아무도 몰라요.`], ...pts];
   const showPts = open.has(k) ? pts : pts.slice(0, 4);
   return `<article class="card" id="c-${esc(k)}">
     <div class="c-top"><span class="c-no">${st.no ? `후보 #${st.no}` : st.no8 ? `8경기+ #${st.no8}` : '추천 대진'}</span><div class="c-tags">${tags.join('')}</div></div>
-    <div class="duel">${sideHtml(x, 'l')}<div class="score"><div class="big"><span class="l">${wx}</span><span class="c">:</span><span class="r">${wy}</span></div><div class="cap">통산 ${n}경기</div></div>${sideHtml(y, 'r')}</div>
+    <div class="duel">${sideHtml(x, 'l', rx)}<div class="score"><div class="big"><span class="l">${wx}</span><span class="c">:</span><span class="r">${wy}</span></div><div class="cap">통산 ${n}경기</div></div>${sideHtml(y, 'r', ry)}</div>
     <div class="bar"><i class="l" style="width:${n ? 100 * wx / n : 50}%"></i><i class="r" style="width:${n ? 100 * wy / n : 50}%"></i></div>
     <div class="bar-cap"><span style="color:var(--L)">${pct(wx, n)}%</span><span>${n ? `${fmtY(st.first)} 첫 만남 · ${fmtD(st.last)} 최근` : ''}</span><span style="color:var(--R)">${pct(wy, n)}%</span></div>
     <div class="points"><h4>👀 이 대진이 성사되면</h4><ul>${showPts.map(([i, t]) => `<li data-i="${i}">${t}</li>`).join('')}</ul></div>
@@ -433,7 +443,7 @@ const STATE = { sort: 'pick', tier: '', q: '', pool: 'close' };
 function listHtml() {
   let list = (STATE.pool === 'all' ? ALL8 : CAND).slice();
   // 직접 추천돼서 표를 받은 대진도 목록에
-  const extra = [...new Set([...made.keys(), ...votes.map(v => v.pair)])].filter(k => !list.some(c => c.key === k)).map(k => { const a8 = ALL8.find(c => c.key === k); if (a8) return a8; const [x, y] = k.split(' vs '); if (!P.get(x) || !P.get(y)) return null; const st = stats(x, y); st.key = k; st.custom = true; return st; }).filter(Boolean);
+  const extra = [...new Set([...made.keys(), ...votes.map(v => v.pair)])].filter(k => !list.some(c => c.key === k)).map(k => { const a8 = ALL8.find(c => c.key === k); if (a8) return a8; const [a, b] = k.split(' vs ').map(parseSide); if (!P.get(a.id) || !P.get(b.id)) return null; const st = stats(a.id, b.id); st.key = k; st.rx = a.r; st.ry = b.r; st.custom = true; return st; }).filter(Boolean);
   list = list.concat(extra);
   if (STATE.tier) list = list.filter(c => P.get(c.x).tier === STATE.tier || P.get(c.y).tier === STATE.tier);
   if (STATE.q) { const q = STATE.q.toLowerCase(); list = list.filter(c => c.x.toLowerCase().includes(q) || c.y.toLowerCase().includes(q)); }
@@ -446,7 +456,7 @@ function lbHtml() {
   const top = [...tally].sort((a, b) => b[1] - a[1]).slice(0, 8);
   if (!voteReady) return '';
   if (!top.length) return '<div class="note">아직 표가 없어요. 첫 표의 주인공이 되어 주세요!</div>';
-  return top.map(([k, v], i) => { const [x, y] = k.split(' vs '); return `<button class="lb-row" data-go="${esc(k)}"><span class="lb-rank">${i + 1}</span><span class="lb-name">${esc(x)}<span class="vs">vs</span>${esc(y)}</span><span class="lb-v">${v}표</span></button>`; }).join('');
+  return top.map(([k, v], i) => { const [x, y] = k.split(' vs ').map(sideLabel); return `<button class="lb-row" data-go="${esc(k)}"><span class="lb-rank">${i + 1}</span><span class="lb-name">${esc(x)}<span class="vs">vs</span>${esc(y)}</span><span class="lb-v">${v}표</span></button>`; }).join('');
 }
 function renderAll() {
   document.getElementById('lb').innerHTML = lbHtml();
@@ -485,7 +495,7 @@ let customPair = null;
 function renderCustom() {
   const out = document.getElementById('customOut');
   if (!customPair) { out.innerHTML = ''; return; }
-  const [x, y] = customPair; const st = stats(x, y); st.key = pairKey(x, y);
+  const [a, b] = customPair; const st = stats(a.id, b.id); st.rx = a.r; st.ry = b.r; st.key = `${sideKey(a.id, a.r)} vs ${sideKey(b.id, b.r)}`;
   const inList = CAND.find(c => c.key === st.key);
   const listed = inList || made.has(st.key) || countOf(st.key) > 0;
   const note = inList ? `이미 후보 #${inList.no}에 있는 대진이에요. 여기서 투표해도 같은 대진으로 집계돼요.`
@@ -514,7 +524,14 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
   const cA = document.getElementById('cA'), cB = document.getElementById('cB');
   const opts = '<option value="">선수 선택</option>' + pickable.map(p => opt(p)).join('');
   cA.innerHTML = opts; cB.innerHTML = opts;
-  document.getElementById('cGo').onclick = () => { if (!cA.value || !cB.value || cA.value === cB.value) return toast('서로 다른 두 선수를 골라 주세요'); customPair = [cA.value, cB.value].sort((a, b) => a.localeCompare(b)); open.add(pairKey(...customPair)); renderCustom(); };
+  const rA = document.getElementById('rA'), rB = document.getElementById('rB');
+  const raceOpts = (sel, id) => { const main = (P.get(id) || {}).race; const cur = sel.value; sel.innerHTML = `<option value="">${main ? `주종 (${RACE_KO[main]})` : '주종'}</option>` + ['Protoss', 'Terran', 'Zerg', 'Random'].filter(r => r !== main).map(r => `<option value="${rk(r)}">${RACE_KO[r]}</option>`).join(''); if ([...sel.options].some(o => o.value === cur)) sel.value = cur; };
+  cA.onchange = () => raceOpts(rA, cA.value); cB.onchange = () => raceOpts(rB, cB.value);
+  document.getElementById('cGo').onclick = () => {
+    if (!cA.value || !cB.value || cA.value === cB.value) return toast('서로 다른 두 선수를 골라 주세요');
+    customPair = [{ id: cA.value, r: rA.value }, { id: cB.value, r: rB.value }].sort((a, b) => a.id.localeCompare(b.id));
+    open.add(`${sideKey(customPair[0].id, customPair[0].r)} vs ${sideKey(customPair[1].id, customPair[1].r)}`); renderCustom();
+  };
   document.getElementById('adminBar').onclick = e => { if (e.target.closest('[data-resetall]') && isAdmin() && confirm('모든 투표와 만든 대진을 지울까요? 되돌릴 수 없어요.')) delRows('id=not.is.null', '전체 초기화했어요'); };
   renderAll();
   await loadVotes(); renderAll();
