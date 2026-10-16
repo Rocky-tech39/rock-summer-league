@@ -73,6 +73,8 @@ button{font-family:inherit;cursor:pointer}
 .pill.rankpill.r1{background:linear-gradient(90deg,#ffd54a,#ffb300);color:#4a3000;border-color:#e0a000}
 .lb-name{font-weight:900;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lb-name .vs{color:var(--mute);font-weight:500;margin:0 6px}
+.lb-name .race{vertical-align:-4px}
+.lb-off{font-size:10px;font-weight:800;color:#7a3fd0;background:#f3ecff;border-radius:6px;padding:1px 5px;margin-left:4px;vertical-align:2px}
 .lb-v{font-weight:900;font-size:15px;color:var(--L)}
 /* toolbar */
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 14px}
@@ -479,7 +481,7 @@ function lbHtml() {
   if (!voteReady) return '';
   if (!top.length) return '<div class="note">아직 표가 없어요. 첫 표의 주인공이 되어 주세요!</div>';
   const R = voteRanks();
-  return top.map(([k, v], i) => { const [x, y] = k.split(' vs ').map(sideLabel); const r = R.get(k); return `<button class="lb-row${r <= 5 ? ' top top' + r : ''}" data-go="${esc(k)}"><span class="lb-rank">${r <= 5 ? MEDAL[r - 1] : r}</span><span class="lb-name">${esc(x)}<span class="vs">vs</span>${esc(y)}</span><span class="lb-v">${v}표</span></button>`; }).join('');
+  return top.map(([k, v], i) => { const [x, y] = k.split(' vs ').map(t => { const { id, r } = parseSide(t); const p = P.get(id) || {}; return `${raceB(r ? RCODE[r] : p.race)} ${esc(id)}${r ? '<span class="lb-off">부종족</span>' : ''}`; }); const r = R.get(k); return `<button class="lb-row${r <= 5 ? ' top top' + r : ''}" data-go="${esc(k)}"><span class="lb-rank">${r <= 5 ? MEDAL[r - 1] : r}</span><span class="lb-name">${x}<span class="vs">vs</span>${y}</span><span class="lb-v">${v}표</span></button>`; }).join('');
 }
 function renderAll() {
   document.getElementById('lb').innerHTML = lbHtml();
