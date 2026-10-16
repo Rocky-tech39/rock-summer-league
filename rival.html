@@ -312,11 +312,14 @@ CAND.forEach((c, i) => c.no = i + 1);
 const CTX = { mostGames: Math.max(...ALL8.map(c => c.n)) };
 
 // ── 투표 ───────────────────────────────────────────
-let votes = []; let voteReady = false; let me = ls.get('rival.me', '');
+let votes = [], made = new Map(); let voteReady = false; let me = ls.get('rival.me', '');
 const H = { apikey: VOTE.key, Authorization: 'Bearer ' + VOTE.key };
 async function loadVotes() {
-  try { const r = await fetch(VOTE.url + '?select=pair,voter&limit=5000', { headers: H, cache: 'no-store' }); if (!r.ok) throw 0; votes = await r.json(); voteReady = true; }
-  catch { voteReady = false; votes = []; }
+  // voter가 '@아이디'인 행 = 대진 등록(표로 세지 않음), 나머지 = 투표
+  try { const r = await fetch(VOTE.url + '?select=pair,voter,created_at&order=created_at.asc&limit=5000', { headers: H, cache: 'no-store' }); if (!r.ok) throw 0; const rows = await r.json();
+    made = new Map(); rows.filter(v => v.voter.startsWith('@')).forEach(v => { if (!made.has(v.pair)) made.set(v.pair, v.voter.slice(1)); });
+    votes = rows.filter(v => !v.voter.startsWith('@')); voteReady = true; }
+  catch { voteReady = false; votes = []; made = new Map(); }
 }
 const countOf = k => votes.filter(v => v.pair === k).length;
 const mine = () => votes.filter(v => v.voter === me).map(v => v.pair);
@@ -349,7 +352,8 @@ function cardHtml(st, opts = {}) {
   const tags = [];
   if (st.n === CTX.mostGames) tags.push('<span class="pill hot">👑 최다 맞대결</span>');
   if (n && wx === wy) tags.push('<span class="pill hot">⚖️ 완벽한 동률</span>');
-  if (opts.custom) tags.push('<span class="pill">✍️ 클랜원 추천</span>');
+  if (made.has(k)) tags.push(`<span class="pill hot">✍️ ${esc(made.get(k))}님이 만든 대진</span>`);
+  else if (opts.custom && !opts.preview) tags.push('<span class="pill">✍️ 클랜원 추천</span>');
   if (n >= 8 && st.gap > 15) tags.push(`<span class="pill">🦁 ${esc(wx > wy ? x : y)} 우세</span>`);
   if (!isActive(x) || !isActive(y)) tags.push('<span class="pill">📣 복귀 소환</span>');
   const X = P.get(x) || {}, Y = P.get(y) || {};
@@ -362,8 +366,8 @@ function cardHtml(st, opts = {}) {
     <div class="bar"><i class="l" style="width:${n ? 100 * wx / n : 50}%"></i><i class="r" style="width:${n ? 100 * wy / n : 50}%"></i></div>
     <div class="bar-cap"><span style="color:var(--L)">${pct(wx, n)}%</span><span>${n ? `${fmtY(st.first)} 첫 만남 · ${fmtD(st.last)} 최근` : ''}</span><span style="color:var(--R)">${pct(wy, n)}%</span></div>
     <div class="points"><h4>👀 이 대진이 성사되면</h4><ul>${showPts.map(([i, t]) => `<li data-i="${i}">${t}</li>`).join('')}</ul></div>
-    <div class="c-foot"><button class="vote ${on ? 'on' : ''}" data-vote="${esc(k)}" ${voteReady ? '' : 'disabled'}>${on ? '✓ 투표함 (취소)' : '🗳️ 이 대진 보고 싶다'}</button>
-      <span class="vcount"><b>${vc}</b>표</span>
+    <div class="c-foot">${opts.preview ? `<button class="vote" data-make="${esc(k)}" ${voteReady ? '' : 'disabled'}>＋ 이 대진 만들기</button><span class="vcount">만들면 모두에게 보이고 투표할 수 있어요</span>` : `<button class="vote ${on ? 'on' : ''}" data-vote="${esc(k)}" ${voteReady ? '' : 'disabled'}>${on ? '✓ 투표함 (취소)' : '🗳️ 이 대진 보고 싶다'}</button>
+      <span class="vcount"><b>${vc}</b>표</span>`}
       ${n ? `<button class="more" data-more="${esc(k)}">${open.has(k) ? '접기 ▴' : '통계 더 보기 ▾'}</button>` : ''}</div>
     ${open.has(k) && n ? detHtml(st) : ''}
   </article>`;
@@ -412,7 +416,7 @@ const STATE = { sort: 'pick', tier: '', q: '', pool: 'close' };
 function listHtml() {
   let list = (STATE.pool === 'all' ? ALL8 : CAND).slice();
   // 직접 추천돼서 표를 받은 대진도 목록에
-  const extra = [...new Set(votes.map(v => v.pair))].filter(k => !list.some(c => c.key === k)).map(k => { const a8 = ALL8.find(c => c.key === k); if (a8) return a8; const [x, y] = k.split(' vs '); if (!P.get(x) || !P.get(y)) return null; const st = stats(x, y); st.key = k; st.custom = true; return st; }).filter(Boolean);
+  const extra = [...new Set([...made.keys(), ...votes.map(v => v.pair)])].filter(k => !list.some(c => c.key === k)).map(k => { const a8 = ALL8.find(c => c.key === k); if (a8) return a8; const [x, y] = k.split(' vs '); if (!P.get(x) || !P.get(y)) return null; const st = stats(x, y); st.key = k; st.custom = true; return st; }).filter(Boolean);
   list = list.concat(extra);
   if (STATE.tier) list = list.filter(c => P.get(c.x).tier === STATE.tier || P.get(c.y).tier === STATE.tier);
   if (STATE.q) { const q = STATE.q.toLowerCase(); list = list.filter(c => c.x.toLowerCase().includes(q) || c.y.toLowerCase().includes(q)); }
@@ -436,7 +440,18 @@ function renderAll() {
   document.getElementById('cards').innerHTML = listHtml();
   bindCards(document);
 }
+async function makePair(k) {
+  if (!voteReady) return toast('투표 서버에 연결하지 못했어요. 새로고침 해 주세요');
+  if (!me) { const el = document.getElementById('me'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.focus(); return toast('먼저 내 아이디를 골라 주세요'); }
+  try {
+    const r = await fetch(VOTE.url, { method: 'POST', headers: { ...H, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ pair: k, voter: '@' + me }) });
+    if (!r.ok && r.status !== 409) throw new Error(r.status);
+    toast('대진을 만들었어요! 이제 투표할 수 있어요 🔥');
+  } catch (e) { return toast('저장하지 못했어요. 잠시 후 다시 눌러 주세요'); }
+  await loadVotes(); renderAll(); renderCustom();
+}
 function bindCards(root) {
+  root.querySelectorAll('[data-make]').forEach(b => b.onclick = () => makePair(b.dataset.make));
   root.querySelectorAll('[data-vote]').forEach(b => b.onclick = () => toggleVote(b.dataset.vote));
   root.querySelectorAll('[data-more]').forEach(b => b.onclick = () => { const k = b.dataset.more; open.has(k) ? open.delete(k) : open.add(k); renderAll(); if (customPair) renderCustom(); });
   root.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { const el = document.getElementById('c-' + b.dataset.go); if (el) { el.scrollIntoView({ behavior: 'smooth' }); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); } });
@@ -447,7 +462,11 @@ function renderCustom() {
   if (!customPair) { out.innerHTML = ''; return; }
   const [x, y] = customPair; const st = stats(x, y); st.key = pairKey(x, y);
   const inList = CAND.find(c => c.key === st.key);
-  out.innerHTML = (inList ? `<div class="note">이미 후보 #${inList.no}에 있는 대진이에요. 여기서 투표해도 같은 대진으로 집계돼요.</div>` : '') + cardHtml(st, { custom: !inList });
+  const listed = inList || made.has(st.key) || countOf(st.key) > 0;
+  const note = inList ? `이미 후보 #${inList.no}에 있는 대진이에요. 여기서 투표해도 같은 대진으로 집계돼요.`
+    : listed ? '이미 만들어진 대진이에요. 아래 후보 대진 목록에도 보여요.'
+    : '아직 목록에 없는 대진이에요. <b>＋ 이 대진 만들기</b>를 누르면 후보 대진에 올라가고 모두 투표할 수 있어요.';
+  out.innerHTML = `<div class="note">${note}</div>` + cardHtml(st, { custom: !inList, preview: !listed });
   bindCards(out);
 }
 let toastT;
