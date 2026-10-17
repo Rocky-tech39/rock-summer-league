@@ -162,6 +162,34 @@ button{font-family:inherit;cursor:pointer}
 .vchip:not(:has(button)){padding-right:10px}
 .adm{border:1px solid #f3b3a3;background:#fff;color:#d9481c;border-radius:14px;padding:4px 10px;font-size:12px;font-weight:800;margin-left:6px}
 .note.admin{background:#fff1ec;color:#8a3b1c}
+.mpanel{border:2px solid #ffd2c2}
+.tscore{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;margin:12px 0 6px;padding:12px 16px;border-radius:16px;background:linear-gradient(90deg,var(--Lbg),#fff 50%,var(--Rbg))}
+.tscore .tn{font-family:'Black Han Sans';font-size:26px;white-space:nowrap}.tscore .tn.a{color:var(--L)}.tscore .tn.b{color:var(--R);text-align:right}
+.tscore .tc{text-align:center}.tscore .tc b{font-family:'Black Han Sans';font-size:40px;line-height:1}.tscore .tc b .a{color:var(--L)}.tscore .tc b .b{color:var(--R)}
+.tscore .tc small{display:block;font-size:12px;color:var(--sub);margin-top:4px}
+.mrow{display:grid;grid-template-columns:44px minmax(0,1fr) 130px minmax(0,1fr) 150px;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;background:var(--card2);margin-top:8px;border:1px solid transparent}
+.mrow.live{background:#fff5f0;border-color:#ffb199;box-shadow:0 0 0 3px rgba(255,120,80,.12)}
+.mrow.done{background:#f6f8fc}
+.mr{font-family:'Black Han Sans';font-size:18px;color:var(--mute);text-align:center}
+.mp{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;font-weight:900;font-size:17px}
+.pm2{display:flex;gap:4px;align-items:center}
+.mp .nm{max-width:100%}
+.mp .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mp.b{align-items:flex-end;text-align:right}
+.mp.win .nm{text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:4px}
+.mp.a.win .nm{text-decoration-color:var(--L)}.mp.b.win .nm{text-decoration-color:var(--R)}
+.mp.lose{opacity:.55}
+.msc{text-align:center}
+.msc b{font-family:'Black Han Sans';font-size:30px;line-height:1;white-space:nowrap}.msc b .a{color:var(--L)}.msc b .b{color:var(--R)}.msc b .c{color:#c3cbe0;margin:0 4px}
+.msc small{display:block;font-size:11px;font-weight:800;color:var(--mute);margin-top:3px}
+.msc small.live{color:#e2482a}.msc small.done{color:var(--win)}
+.mact{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.mbtn{border:1px solid var(--line);background:#fff;border-radius:16px;padding:6px 10px;font-size:12px;font-weight:800;color:var(--sub);text-decoration:none;min-height:32px;display:inline-flex;align-items:center;gap:4px}
+.mbtn.tv{background:linear-gradient(135deg,#ff4d4d,#e2202f);color:#fff;border:0}
+.medit{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding-top:8px;border-top:1px dashed var(--line);font-size:12px;color:var(--sub)}
+.medit input[type=number]{width:56px}.medit input[type=url]{flex:1;min-width:180px}
+.medit .pm{border:1px solid var(--line);background:#fff;border-radius:8px;min-width:30px;min-height:32px;font-weight:900}
+@media(max-width:760px){.mrow{grid-template-columns:34px minmax(0,1fr) 92px minmax(0,1fr)}.mact{grid-column:1/-1;justify-content:center}.msc b{font-size:24px}.mp{font-size:14px}.tscore .tn{font-size:20px}.tscore .tc b{font-size:32px}}
 .foot{text-align:center;font-size:12px;color:var(--sub);margin-top:24px;line-height:1.8}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#182543;color:#fff;padding:10px 18px;border-radius:12px;font-size:14px;font-weight:700;box-shadow:0 8px 20px rgba(0,0,0,.25);z-index:9;max-width:calc(100% - 32px)}
 </style>
@@ -171,9 +199,16 @@ button{font-family:inherit;cursor:pointer}
   <header class="hero">
     <div class="eyebrow">ROCK CLAN · RIVAL FINAL</div>
     <h1><span class="l">라이벌</span> 끝장전 <span class="r">⚔️</span></h1>
-    <div class="tag"><b>7판 전부 진행</b> <b>클랜원 투표로 대진 결정</b> <b>득표 순서대로 성사</b></div>
+    <div class="tag"><b>A조 vs B조 11라운드</b> <b>라운드마다 7판 전부</b> <b>방송으로 같이 보기</b></div>
     <div class="asof" id="asof"></div>
   </header>
+
+  <section class="panel mpanel">
+    <h2>📺 끝장전 대진표 <small>총 11라운드 · 라운드마다 7판 전부</small></h2>
+    <div id="teamScore"></div>
+    <div id="matches"><div class="note">대진표를 불러오는 중…</div></div>
+    <div id="matchHint"></div>
+  </section>
 
   <section class="steps">
     <div class="step"><span class="n">STEP 1</span><h3>맞수 자동 추천</h3><p>지금까지 프로리그 개인전에서 <b>8번 이상</b> 만났고, 서로 승률이 <b>35~65%</b> 안쪽인 팽팽한 맞수를 골랐어요. <b>8경기 이상 전체</b>를 누르면 한쪽이 앞서는 천적 대진도 볼 수 있어요.</p></div>
@@ -483,7 +518,69 @@ function lbHtml() {
   const R = voteRanks();
   return top.map(([k, v], i) => { const [x, y] = k.split(' vs ').map(t => { const { id, r } = parseSide(t); const p = P.get(id) || {}; return `${raceB(r ? RCODE[r] : p.race)} ${esc(id)}${r ? '<span class="lb-off">부종족</span>' : ''}`; }); const r = R.get(k); return `<button class="lb-row${r <= 5 ? ' top top' + r : ''}" data-go="${esc(k)}"><span class="lb-rank">${r <= 5 ? MEDAL[r - 1] : r}</span><span class="lb-name">${x}<span class="vs">vs</span>${y}</span><span class="lb-v">${v}표</span></button>`; }).join('');
 }
+// ── 끝장전 대진표 ─────────────────────────────────
+const MATCH_URL = 'https://myfemuhinzubepeppgzy.supabase.co/rest/v1/rival_matches';
+let matches = [], matchReady = false;
+async function loadMatches() {
+  try { const r = await fetch(MATCH_URL + '?select=*&order=round', { headers: H, cache: 'no-store' }); if (!r.ok) throw 0; matches = await r.json(); matchReady = true; }
+  catch { matchReady = false; }
+}
+const editing = new Set();
+function pSide(id, cls, win, lose) {
+  const p = P.get(id) || {};
+  const inner = `<span class="nm">${esc(id)}</span><span class="pm2">${raceB(p.race)}${p.tier ? tierB(p.tier) : ''}</span>`;
+  return `<div class="mp ${cls}${win ? ' win' : ''}${lose ? ' lose' : ''}">${inner}</div>`;
+}
+function renderMatches() {
+  const box = document.getElementById('matches');
+  if (!matchReady) { box.innerHTML = '<div class="note warn">대진표를 불러오지 못했어요. 잠시 후 새로고침 해 주세요.</div>'; return; }
+  let ra = 0, rb = 0, ga = 0, gb = 0, fin = 0;
+  matches.forEach(m => { ga += m.sa; gb += m.sb; if (m.sa + m.sb === 7) { fin++; m.sa > m.sb ? ra++ : rb++; } });
+  document.getElementById('teamScore').innerHTML = `<div class="tscore"><div class="tn a">A조</div><div class="tc"><b><span class="a">${ra}</span> : <span class="b">${rb}</span></b><small>라운드 승 · 끝난 라운드 ${fin}/${matches.length} · 세트 합계 ${ga} : ${gb}</small></div><div class="tn b">B조</div></div>`;
+  const adm = isAdmin();
+  box.innerHTML = matches.map(m => {
+    const n = m.sa + m.sb, done = n === 7, live = n > 0 && !done;
+    const st = done ? `<small class="done">종료 · ${esc(m.sa > m.sb ? m.a : m.b)} 승</small>` : live ? `<small class="live">${m.link ? '🔴 ' : ''}진행 중 ${n}/7</small>` : '<small>예정</small>';
+    const link = /^https?:\/\//.test(m.link || '') ? m.link : '';
+    const ed = adm && editing.has(m.round);
+    return `<div class="mrow${live ? ' live' : ''}${done ? ' done' : ''}">
+      <span class="mr">R${m.round}</span>
+      ${pSide(m.a, 'a', done && m.sa > m.sb, done && m.sa < m.sb)}
+      <div class="msc"><b><span class="a">${m.sa}</span><span class="c">:</span><span class="b">${m.sb}</span></b>${st}</div>
+      ${pSide(m.b, 'b', done && m.sb > m.sa, done && m.sb < m.sa)}
+      <div class="mact">${link ? `<a class="mbtn tv" href="${esc(link)}" target="_blank" rel="noopener">▶ 방송</a>` : ''}<button class="mbtn" data-h2h="${esc(m.a)}|${esc(m.b)}">📊 전적</button>${adm ? `<button class="mbtn" data-medit="${m.round}">${ed ? '닫기' : '✏️ 입력'}</button>` : ''}</div>
+      ${ed ? `<div class="medit" data-round="${m.round}">
+        <span>${esc(m.a)}</span><button class="pm" data-pm="sa|-1">−</button><input class="fld" type="number" min="0" max="7" value="${m.sa}" data-f="sa" aria-label="${esc(m.a)} 승"><button class="pm" data-pm="sa|1">＋</button>
+        <span style="margin-left:8px">${esc(m.b)}</span><button class="pm" data-pm="sb|-1">−</button><input class="fld" type="number" min="0" max="7" value="${m.sb}" data-f="sb" aria-label="${esc(m.b)} 승"><button class="pm" data-pm="sb|1">＋</button>
+        <input class="fld" type="url" placeholder="방송 링크 (https://...)" value="${esc(m.link || '')}" data-f="link" aria-label="방송 링크">
+        <button class="vote" data-msave="${m.round}" style="min-height:36px;padding:6px 16px">저장</button></div>` : ''}
+    </div>`;
+  }).join('');
+  document.getElementById('matchHint').innerHTML = adm ? '' : '<div class="note" style="margin-top:10px">운영진은 아래 <b>내 아이디</b>를 운영진 아이디로 고르면 스코어와 방송 링크를 입력할 수 있어요.</div>';
+  box.querySelectorAll('[data-medit]').forEach(b => b.onclick = () => { const r = +b.dataset.medit; editing.has(r) ? editing.delete(r) : editing.add(r); renderMatches(); });
+  box.querySelectorAll('[data-h2h]').forEach(b => b.onclick = () => {
+    const [a, c] = b.dataset.h2h.split('|');
+    customPair = [{ id: a, r: '' }, { id: c, r: '' }].sort((x, y) => x.id.localeCompare(y.id));
+    open.add(pairKey(a, c)); renderCustom(); document.getElementById('customOut').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  box.querySelectorAll('.medit').forEach(ed => {
+    const get = k => ed.querySelector(`[data-f="${k}"]`);
+    ed.querySelectorAll('[data-pm]').forEach(b => b.onclick = () => { const [k, d] = b.dataset.pm.split('|'); const i = get(k); i.value = Math.max(0, Math.min(7, (+i.value || 0) + +d)); });
+    ed.querySelector('[data-msave]').onclick = async () => {
+      const sa = +get('sa').value, sb = +get('sb').value, link = get('link').value.trim();
+      if (!Number.isInteger(sa) || !Number.isInteger(sb) || sa < 0 || sb < 0 || sa + sb > 7) return toast('스코어는 합쳐서 7판까지예요');
+      if (link && !/^https?:\/\//.test(link)) return toast('방송 링크는 http로 시작해야 해요');
+      try {
+        const r = await fetch(`${MATCH_URL}?round=eq.${ed.dataset.round}`, { method: 'PATCH', headers: { ...H, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ sa, sb, link, updated_by: me, updated_at: new Date().toISOString() }) });
+        if (!r.ok) throw new Error(r.status);
+        toast(sa + sb === 7 ? '저장했어요! 라운드 종료 🎉' : '저장했어요'); editing.delete(+ed.dataset.round);
+      } catch (e) { toast('저장하지 못했어요. 잠시 후 다시 눌러 주세요'); }
+      await loadMatches(); renderMatches();
+    };
+  });
+}
 function renderAll() {
+  renderMatches();
   document.getElementById('lb').innerHTML = lbHtml();
   const voters = new Set(votes.map(v => v.voter)).size;
   document.getElementById('voteStat').textContent = voteReady ? `${voters}명 참여 · ${votes.length}표` : '';
@@ -559,8 +656,8 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
   };
   document.getElementById('adminBar').onclick = e => { if (e.target.closest('[data-resetall]') && isAdmin() && confirm('모든 투표와 만든 대진을 지울까요? 되돌릴 수 없어요.')) delRows('id=not.is.null', '전체 초기화했어요'); };
   renderAll();
-  await loadVotes(); renderAll();
-  setInterval(async () => { if (document.hidden) return; await loadVotes(); renderAll(); if (customPair) renderCustom(); }, 30000);
+  await Promise.all([loadVotes(), loadMatches()]); renderAll();
+  setInterval(async () => { if (document.hidden || editing.size) return; await Promise.all([loadVotes(), loadMatches()]); renderAll(); if (customPair) renderCustom(); }, 30000);
 })();
 </script>
 </body>
