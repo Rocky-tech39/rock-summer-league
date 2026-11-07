@@ -162,6 +162,8 @@ button{font-family:inherit;cursor:pointer}
 .vchip:not(:has(button)){padding-right:10px}
 .adm{border:1px solid #f3b3a3;background:#fff;color:#d9481c;border-radius:14px;padding:4px 10px;font-size:12px;font-weight:800;margin-left:6px}
 .note.admin{background:#fff1ec;color:#8a3b1c}
+.madd{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px;padding:12px;border:1px dashed #ffb199;border-radius:14px;background:#fffaf7}
+.madd .fld{width:150px}.madd .vs{font-family:'Black Han Sans';color:var(--mute)}
 .mpanel{border:2px solid #ffd2c2}
 .tscore{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;margin:12px 0 6px;padding:12px 16px;border-radius:16px;background:linear-gradient(90deg,var(--Lbg),#fff 50%,var(--Rbg))}
 .tscore .tn{font-family:'Black Han Sans';font-size:26px;white-space:nowrap}.tscore .tn.a{color:var(--L)}.tscore .tn.b{color:var(--R);text-align:right}
@@ -202,16 +204,18 @@ button{font-family:inherit;cursor:pointer}
   <header class="hero">
     <div class="eyebrow">ROCK CLAN · RIVAL FINAL</div>
     <h1><span class="l">라이벌</span> 끝장전 <span class="r">⚔️</span></h1>
-    <div class="tag"><b>A조 vs B조 13라운드</b> <b>라운드마다 7판 전부</b> <b>방송으로 같이 보기</b> <b class="elo">📈 ELO 반영</b></div>
+    <div class="tag"><b>A조 vs B조 <span class="nRounds">13</span>라운드</b> <b>라운드마다 7판 전부</b> <b>방송으로 같이 보기</b> <b class="elo">📈 ELO 반영</b></div>
     <div class="asof" id="asof"></div>
   </header>
 
   <section class="panel mpanel">
-    <h2>📺 끝장전 대진표 <small>총 13라운드 · 라운드마다 7판 전부</small></h2>
+    <h2>📺 끝장전 대진표 <small>총 <span class="nRounds">13</span>라운드 · 라운드마다 7판 전부</small></h2>
     <div class="elonote"><b>📈 혜택: 끝장전 결과는 ELO(레이팅)에 반영돼요</b><span>라운드가 끝나면 7판 각각을 <b>개인전 1경기</b>로 기록실(RockClan Records v2)에 넣어 레이팅에 반영합니다. 방송 기록에 맵이 없어서 맵은 "끝장전(맵 미기록)"으로, 스코어만 반영돼요. 선수 프로필에서도 끝장전 결과를 볼 수 있어요. <a href="https://rocky-tech39.github.io/rockclan-v2/#/ranking" target="_blank" rel="noopener">랭킹 보기 →</a></span></div>
     <div id="teamScore"></div>
     <div id="matches"><div class="note">대진표를 불러오는 중…</div></div>
+    <div id="matchAdd"></div>
     <div id="matchHint"></div>
+    <datalist id="plList"></datalist>
   </section>
 
   <section class="steps">
@@ -557,9 +561,20 @@ function renderMatches() {
         <span>${esc(m.a)}</span><button class="pm" data-pm="sa|-1">−</button><input class="fld" type="number" min="0" max="7" value="${m.sa}" data-f="sa" aria-label="${esc(m.a)} 승"><button class="pm" data-pm="sa|1">＋</button>
         <span style="margin-left:8px">${esc(m.b)}</span><button class="pm" data-pm="sb|-1">−</button><input class="fld" type="number" min="0" max="7" value="${m.sb}" data-f="sb" aria-label="${esc(m.b)} 승"><button class="pm" data-pm="sb|1">＋</button>
         <input class="fld" type="url" placeholder="방송 링크 (https://...)" value="${esc(m.link || '')}" data-f="link" aria-label="방송 링크">
-        <button class="vote" data-msave="${m.round}" style="min-height:36px;padding:6px 16px">저장</button></div>` : ''}
+        <button class="vote" data-msave="${m.round}" style="min-height:36px;padding:6px 16px">저장</button>
+        <span style="flex-basis:100%;height:0"></span>
+        <span>선수 바꾸기</span><input class="fld" list="plList" value="${esc(m.a)}" data-f="a" aria-label="A조 선수" style="width:130px"><span>vs</span><input class="fld" list="plList" value="${esc(m.b)}" data-f="b" aria-label="B조 선수" style="width:130px">
+        <button class="mbtn" data-mdel="${m.round}" style="margin-left:auto;color:#d9481c;border-color:#f3b3a3">🗑 이 라운드 삭제</button></div>` : ''}
     </div>`;
   }).join('');
+  document.querySelectorAll('.nRounds').forEach(x => x.textContent = matches.length);
+  const ids = [...new Set([...PL.map(p => p.id), ...matches.flatMap(m => [m.a, m.b])])].sort((x, y) => x.localeCompare(y));
+  document.getElementById('plList').innerHTML = ids.map(i => `<option value="${esc(i)}">`).join('');
+  const add = document.getElementById('matchAdd');
+  add.innerHTML = adm ? `<div class="madd"><b>➕ 경기 추가</b><span class="mute">R${(matches.reduce((x, m) => Math.max(x, m.round), 0)) + 1}</span>
+    <input class="fld" list="plList" id="addA" placeholder="A조 선수" aria-label="A조 선수"><span class="vs">vs</span><input class="fld" list="plList" id="addB" placeholder="B조 선수" aria-label="B조 선수">
+    <button class="vote" id="addGo" style="min-height:38px;padding:6px 16px">추가</button><span class="small mute">목록에 없는 선수도 이름을 직접 쓰면 돼요</span></div>` : '';
+  if (adm) document.getElementById('addGo').onclick = addRound;
   document.getElementById('matchHint').innerHTML = adm ? '' : '<div class="note" style="margin-top:10px">운영진은 아래 <b>내 아이디</b>를 운영진 아이디로 고르면 스코어와 방송 링크를 입력할 수 있어요.</div>';
   box.querySelectorAll('[data-medit]').forEach(b => b.onclick = () => { const r = +b.dataset.medit; editing.has(r) ? editing.delete(r) : editing.add(r); renderMatches(); });
   box.querySelectorAll('[data-h2h]').forEach(b => b.onclick = () => {
@@ -569,19 +584,48 @@ function renderMatches() {
   });
   box.querySelectorAll('.medit').forEach(ed => {
     const get = k => ed.querySelector(`[data-f="${k}"]`);
+    ed.querySelector('[data-mdel]').onclick = () => delRound(+ed.dataset.round);
     ed.querySelectorAll('[data-pm]').forEach(b => b.onclick = () => { const [k, d] = b.dataset.pm.split('|'); const i = get(k); i.value = Math.max(0, Math.min(7, (+i.value || 0) + +d)); });
     ed.querySelector('[data-msave]').onclick = async () => {
-      const sa = +get('sa').value, sb = +get('sb').value, link = get('link').value.trim();
+      const sa = +get('sa').value, sb = +get('sb').value, link = get('link').value.trim(), na = get('a').value.trim(), nb = get('b').value.trim();
+      if (!na || !nb || na === nb) return toast('서로 다른 두 선수를 넣어 주세요');
       if (!Number.isInteger(sa) || !Number.isInteger(sb) || sa < 0 || sb < 0 || sa + sb > 7) return toast('스코어는 합쳐서 7판까지예요');
       if (link && !/^https?:\/\//.test(link)) return toast('방송 링크는 http로 시작해야 해요');
       try {
-        const r = await fetch(`${MATCH_URL}?round=eq.${ed.dataset.round}`, { method: 'PATCH', headers: { ...H, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ sa, sb, link, updated_by: me, updated_at: new Date().toISOString() }) });
+        const r = await fetch(`${MATCH_URL}?round=eq.${ed.dataset.round}`, { method: 'PATCH', headers: { ...H, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ a: na, b: nb, sa, sb, link, updated_by: me, updated_at: new Date().toISOString() }) });
         if (!r.ok) throw new Error(r.status);
         toast(sa + sb === 7 ? '저장했어요! 라운드 종료 🎉' : '저장했어요'); editing.delete(+ed.dataset.round);
       } catch (e) { toast('저장하지 못했어요. 잠시 후 다시 눌러 주세요'); }
       await loadMatches(); renderMatches();
     };
   });
+}
+async function addRound() {
+  const a = document.getElementById('addA').value.trim(), b = document.getElementById('addB').value.trim();
+  if (!isAdmin()) return;
+  if (!a || !b || a === b) return toast('서로 다른 두 선수를 넣어 주세요');
+  const round = matches.reduce((x, m) => Math.max(x, m.round), 0) + 1;
+  try {
+    const r = await fetch(MATCH_URL, { method: 'POST', headers: { ...H, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ round, a, b, updated_by: me }) });
+    if (!r.ok) throw new Error(r.status);
+    toast(`R${round} ${a} vs ${b} 추가했어요`);
+  } catch (e) { toast('추가하지 못했어요. 잠시 후 다시 눌러 주세요'); }
+  await loadMatches(); renderMatches();
+}
+async function delRound(round) {
+  const m = matches.find(x => x.round === round); if (!m || !isAdmin()) return;
+  const warn = m.sa + m.sb ? `\n⚠️ 이미 ${m.sa}:${m.sb} 스코어가 있어요.` : '';
+  if (!confirm(`R${round} ${m.a} vs ${m.b} 를 삭제할까요?${warn}\n뒤 라운드 번호는 하나씩 당겨져요. 되돌릴 수 없어요.`)) return;
+  try {
+    let r = await fetch(`${MATCH_URL}?round=eq.${round}`, { method: 'DELETE', headers: H });
+    if (!r.ok) throw new Error(r.status);
+    for (const x of matches.filter(x => x.round > round).sort((p, q) => p.round - q.round)) {
+      r = await fetch(`${MATCH_URL}?round=eq.${x.round}`, { method: 'PATCH', headers: { ...H, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ round: x.round - 1 }) });
+      if (!r.ok) throw new Error(r.status);
+    }
+    editing.clear(); toast(`R${round} 삭제했어요`);
+  } catch (e) { toast('삭제하지 못했어요. 새로고침 후 다시 확인해 주세요'); }
+  await loadMatches(); renderMatches();
 }
 function renderAll() {
   renderMatches();
